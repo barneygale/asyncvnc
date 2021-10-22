@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives.asymmetric import dh
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.hashes import Hash, MD5
 
-from numpy import ndarray, zeros, dstack
+import numpy as np
 
 
 async def read_int(reader: StreamReader, length: int) -> int:
@@ -221,20 +221,20 @@ class Video:
     height: int
 
     #: 3D numpy array of colour data
-    data: Optional[ndarray] = None
+    data: Optional[np.ndarray] = None
 
-    def as_rgba(self) -> ndarray:
+    def as_rgba(self) -> np.ndarray:
         """
         Returns the video buffer as a 3D RGBA array.
         """
 
         if self.data is None:
-            return zeros((self.height, self.width, 4), 'B')
+            return np.zeros((self.height, self.width, 4), 'B')
         if self.mode is VideoMode.RGBA:
             return self.data
         if self.mode is VideoMode.ABGR:
             return self.data[:, :, ::-1]
-        return dstack((
+        return np.dstack((
             self.data[:, :, self.mode.name.index('R')],
             self.data[:, :, self.mode.name.index('G')],
             self.data[:, :, self.mode.name.index('B')],
@@ -258,8 +258,8 @@ class Video:
         """
 
         if self.data is None:
-            self.data = zeros((self.height, self.width, 4), 'B')
-        self.data[y:y + height, x:x + width] = ndarray((height, width, 4), 'B', data)
+            self.data = np.zeros((self.height, self.width, 4), 'B')
+        self.data[y:y + height, x:x + width] = np.ndarray((height, width, 4), 'B', data)
         self.data[y:y + height, x:x + width, self.mode.name.index('A')] = 255
 
 
