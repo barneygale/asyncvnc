@@ -35,11 +35,18 @@ async def main():
     except asyncio.TimeoutError:
         pass
 
-    print('loading image')
-    image = Image.fromarray(client.video.as_rgba())
+    print('loading rgba data')
+    pixels = client.video.as_rgba()
 
-    print('saving image')
-    image.save(filename)
+    print('detecting screens')
+    screens = client.video.detect_screens()
+
+    for idx, screen in enumerate(screens):
+        filename = f'screenshot_{idx}.png'
+
+        print(f'saving {filename} ({screen.width}x{screen.height})')
+        image = Image.fromarray(pixels[screen.slice])
+        image.save(filename)
 
     print('disconnecting')
     writer.close()
