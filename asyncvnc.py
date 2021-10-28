@@ -41,8 +41,13 @@ class SecurityType(Enum):
     VNC security type.
     """
 
+    #: macOS authentication
     MAC = 30
+
+    #: No authentication
     NONE = 0
+
+    #: VNC authentication
     VNC = 1
 
 
@@ -51,8 +56,13 @@ class UpdateType(Enum):
     Update from server to client.
     """
 
+    #: Video update
     VIDEO = 0
+
+    #: Clipboard update
     CLIPBOARD = 2
+
+    #: Bell update
     BELL = 3
 
 
@@ -61,11 +71,22 @@ class MouseButton(Flag):
     Mouse button state.
     """
 
+    #: No mouse button
     NONE = 0
+
+    #: Left mouse button
     LEFT = 1
+
+    #: Middle mouse button
     MIDDLE = 2
+
+    #: Right mouse button
     RIGHT = 4
+
+    #: Scroll up
     SCROLL_UP = 8
+
+    #: Scroll down
     SCROLL_DOWN = 16
 
 
@@ -74,6 +95,7 @@ class VideoEncoding(Enum):
     Video encoding.
     """
 
+    #: Raw encoding
     RAW = 0
 
 
@@ -82,9 +104,16 @@ class VideoMode(Enum):
     Video mode (colour channel order)
     """
 
+    #: Blue, green, red, alpha
     BGRA = b'\x20\x18\x00\x01\x00\xff\x00\xff\x00\xff\x10\x08\x00'
+
+    #: Red, green, blue, alpha
     RGBA = b'\x20\x18\x00\x01\x00\xff\x00\xff\x00\xff\x00\x08\x10'
+
+    #: Alpha, red, green, blue
     ARGB = b'\x20\x18\x01\x01\x00\xff\x00\xff\x00\xff\x10\x08\x00'
+
+    #: Alpha, blue, green, red
     ABGR = b'\x20\x18\x01\x01\x00\xff\x00\xff\x00\xff\x00\x08\x10'
 
     def __repr__(self) -> str:
