@@ -45,7 +45,7 @@ async def main():
         filename = f'screenshot_{idx}.png'
 
         print(f'saving {filename} ({screen.width}x{screen.height})')
-        image = Image.fromarray(pixels[screen.slice])
+        image = Image.fromarray(pixels[screen.slices])
         image.save(filename)
 
     print('disconnecting')
