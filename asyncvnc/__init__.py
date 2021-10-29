@@ -73,7 +73,7 @@ class Client:
                 encoding = VideoEncoding(await read_int(self.reader, 4))
                 if encoding is VideoEncoding.RAW:
                     data = await self.reader.readexactly(height * width * 4)
-                    self.video.update(data, x, y, width, height)
+                    self.video.handle_update(data, x, y, width, height)
 
         return update_type
 

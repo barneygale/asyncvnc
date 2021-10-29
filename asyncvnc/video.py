@@ -122,7 +122,7 @@ class Video:
             self.data[:, :, self.mode.name.index('B')],
             self.data[:, :, self.mode.name.index('A')]))
 
-    def write_request(self) -> None:
+    def update(self) -> None:
         """
         Sends a video buffer update request to the server.
         """
@@ -134,11 +134,7 @@ class Video:
         self.writer.write(self.width.to_bytes(2, 'big'))
         self.writer.write(self.height.to_bytes(2, 'big'))
 
-    def update(self, data: bytes, x: int, y: int, width: int, height: int) -> None:
-        """
-        Updates a portion of the video buffer.
-        """
-
+    def handle_update(self, data: bytes, x: int, y: int, width: int, height: int) -> None:
         if self.data is None:
             self.data = np.zeros((self.height, self.width, 4), 'B')
         self.data[y:y + height, x:x + width] = np.ndarray((height, width, 4), 'B', data)

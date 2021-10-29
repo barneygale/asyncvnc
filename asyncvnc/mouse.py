@@ -35,46 +35,12 @@ class Mouse:
 
     writer: StreamWriter = field(repr=False)
 
-    #: Mask of pressed buttons
-    buttons: MouseButton = MouseButton.NONE
-
-    #: Horizontal position
-    x: int = 0
-
-    #: Vertical position
-    y: int = 0
-
-    def write(self):
+    def update(self, x: int, y: int, buttons: MouseButton):
         """
         Sends a mouse update to the server.
         """
 
         self.writer.write(b'\x05')
-        self.writer.write(self.buttons.value.to_bytes(1, 'big'))
-        self.writer.write(self.x.to_bytes(2, 'big'))
-        self.writer.write(self.y.to_bytes(2, 'big'))
-
-    def down(self, button: MouseButton):
-        """
-        Presses a mouse button.
-        """
-
-        self.buttons |= button
-        self.write()
-
-    def up(self, button: MouseButton):
-        """
-        Releases a mouse button.
-        """
-
-        self.buttons &= ~button
-        self.write()
-
-    def move(self, x, y):
-        """
-        Moves the mouse pointer.
-        """
-
-        self.x = x
-        self.x = y
-        self.write()
+        self.writer.write(buttons.value.to_bytes(1, 'big'))
+        self.writer.write(x.to_bytes(2, 'big'))
+        self.writer.write(y.to_bytes(2, 'big'))

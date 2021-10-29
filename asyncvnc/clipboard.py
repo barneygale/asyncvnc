@@ -13,12 +13,12 @@ class Clipboard:
     #: The clipboard text.
     text: str = ''
 
-    def write(self) -> None:
+    def update(self, text: str) -> None:
         """
         Sends clipboard text to the server.
         """
 
-        data = self.text.encode('latin-1')
+        data = text.encode('latin-1')
         self.writer.write(b'\x06\x00')
         self.writer.write(len(data).to_bytes(4, 'big'))
         self.writer.write(data)
