@@ -140,13 +140,13 @@ class Video:
         self.data[y:y + height, x:x + width] = np.ndarray((height, width, 4), 'B', data)
         self.data[y:y + height, x:x + width, self.mode.name.index('A')] = 255
 
-    def detect_screens(self) -> tuple[Screen]:
+    def detect_screens(self) -> list[Screen]:
         """
         Detect physical screens by inspecting the alpha channel.
         """
 
         if self.data is None:
-            return tuple()
+            return []
 
         mask = self.data[:, :, self.mode.name.index('A')]
         mask = np.pad(mask // 255, ((1, 1), (1, 1))).astype(np.int8)
@@ -165,19 +165,23 @@ class Video:
                 np.argwhere(mask_c - mask_d & mask_b - mask_d == -1))  # bottom right
 
             # Find cases where 3 corners align, forming an  'L' shape.
-            candidates = set()
+            rects = set()
             for a, b, c, d in corners:
                 ab = a[0] == b[0] and a[1] < b[1]  # top
                 cd = c[0] == d[0] and c[1] < d[1]  # bottom
                 ac = a[1] == c[1] and a[0] < c[0]  # left
                 bd = b[1] == d[1] and b[0] < d[0]  # right
-                ab and ac and candidates.add((a[1], a[0], b[1], c[0]))
-                ab and bd and candidates.add((a[1], a[0], d[1], d[0]))
-                cd and ac and candidates.add((a[1], a[0], d[1], d[0]))
-                cd and bd and candidates.add((c[1], b[0], d[1], d[0]))
+                if ab and ac:
+                    rects.add((a[1], a[0], b[1], c[0]))
+                if ab and bd:
+                    rects.add((a[1], a[0], d[1], d[0]))
+                if cd and ac:
+                    rects.add((a[1], a[0], d[1], d[0]))
+                if cd and bd:
+                    rects.add((c[1], b[0], d[1], d[0]))
 
             # Create screen objects and sort them by their scores.
-            candidates = [Screen(int(x0), int(y0), int(x1 - x0), int(y1 - y0)) for x0, y0, x1, y1 in candidates]
+            candidates = [Screen(int(x0), int(y0), int(x1 - x0), int(y1 - y0)) for x0, y0, x1, y1 in rects]
             candidates.sort(key=lambda screen: screen.score, reverse=True)
 
             # Find a single fully-opaque screen
@@ -189,4 +193,4 @@ class Video:
 
             # Finish up if no screens remain
             else:
-                return tuple(screens)
+                return screens
