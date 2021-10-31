@@ -15,12 +15,12 @@ class Keyboard:
 
     @contextmanager
     def _hold(self, key: str):
-        key = keys[key].to_bytes(4, 'big')
-        self.writer.write(b'\x04\x01\x00\x00' + key)
+        data = keys[key].to_bytes(4, 'big')
+        self.writer.write(b'\x04\x01\x00\x00' + data)
         try:
             yield
         finally:
-            self.writer.write(b'\x04\x00\x00\x00' + key)
+            self.writer.write(b'\x04\x00\x00\x00' + data)
 
     @contextmanager
     def hold(self, *keys: str):
