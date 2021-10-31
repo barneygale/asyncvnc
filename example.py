@@ -27,7 +27,7 @@ async def main():
     client = await asyncvnc.auth(reader, writer, username, password)
 
     print('requesting image')
-    client.video.write_request()
+    client.video.update()
 
     print('handling packets')
     try:

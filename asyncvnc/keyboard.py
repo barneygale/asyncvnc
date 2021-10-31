@@ -12,16 +12,11 @@ class Keyboard:
 
     writer: StreamWriter = field(repr=False)
 
-    def down(self, key: str) -> None:
+    def update(self, key: str, down: bool) -> None:
         """
-        Presses a key.
-        """
-
-        self.writer.write(b'\x04\x01\x00\x00' + keys[key].to_bytes(4, 'big'))
-
-    def up(self, key: str) -> None:
-        """
-        Releases a key.
+        Sends a keyboard update to the server.
         """
 
-        self.writer.write(b'\x04\x00\x00\x00' + keys[key].to_bytes(4, 'big'))
+        self.writer.write(
+            b'\x04' + down.to_bytes(1, 'big') +
+            b'\x00\x00' + keys[key].to_bytes(4, 'big'))

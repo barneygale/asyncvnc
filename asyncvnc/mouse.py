@@ -35,7 +35,7 @@ class Mouse:
 
     writer: StreamWriter = field(repr=False)
 
-    def update(self, x: int, y: int, buttons: MouseButton):
+    def update(self, buttons: MouseButton, x: int, y: int):
         """
         Sends a mouse update to the server.
         """
