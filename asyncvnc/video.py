@@ -18,6 +18,9 @@ class VideoEncoding(Enum):
     Video encoding.
     """
 
+    #: ZLib encoding
+    ZLIB = 6
+
     #: Raw encoding
     RAW = 0
 

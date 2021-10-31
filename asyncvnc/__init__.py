@@ -2,6 +2,7 @@ from asyncio import StreamReader, StreamWriter
 from dataclasses import dataclass, field
 from enum import Enum
 from os import urandom
+from zlib import decompressobj
 
 from cryptography.hazmat.primitives.asymmetric import dh
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -36,6 +37,7 @@ class Client:
     """
 
     reader: StreamReader = field(repr=False)
+    decompressor: decompressobj = field(repr=False)
 
     #: The name of the desktop.
     name: str
@@ -71,9 +73,13 @@ class Client:
                 width = await read_int(self.reader, 2)
                 height = await read_int(self.reader, 2)
                 encoding = VideoEncoding(await read_int(self.reader, 4))
-                if encoding is VideoEncoding.RAW:
+                if encoding is VideoEncoding.ZLIB:
+                    length = await read_int(self.reader, 4)
+                    data = await self.reader.readexactly(length)
+                    data = self.decompressor.decompress(data)
+                else:
                     data = await self.reader.readexactly(height * width * 4)
-                    self.video.handle_update(data, x, y, width, height)
+                self.video.handle_update(data, x, y, width, height)
 
         return update_type
 
@@ -147,6 +153,7 @@ async def auth(reader: StreamReader, writer: StreamWriter, username: str = '', p
 
     return Client(
         reader=reader,
+        decompressor=decompressobj(),
         name=name,
         clipboard=Clipboard(writer),
         keyboard=Keyboard(writer),

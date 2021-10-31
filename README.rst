@@ -17,4 +17,3 @@ Planned Features
 ----------------
 
 - binary or utf-8 clipboard
-- zlib encoding
