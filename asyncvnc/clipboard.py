@@ -13,7 +13,7 @@ class Clipboard:
     #: The clipboard text.
     text: str = ''
 
-    def update(self, text: str) -> None:
+    def write(self, text: str) -> None:
         """
         Sends clipboard text to the server.
         """

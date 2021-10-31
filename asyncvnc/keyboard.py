@@ -1,4 +1,5 @@
 from asyncio import StreamWriter
+from contextlib import contextmanager, ExitStack
 from dataclasses import dataclass, field
 
 from asyncvnc.keys import keys
@@ -12,11 +13,27 @@ class Keyboard:
 
     writer: StreamWriter = field(repr=False)
 
-    def update(self, key: str, down: bool) -> None:
-        """
-        Sends a keyboard update to the server.
-        """
+    @contextmanager
+    def _hold(self, key: str):
+        key = keys[key].to_bytes(4, 'big')
+        self.writer.write(b'\x04\x01\x00\x00' + key)
+        try:
+            yield
+        finally:
+            self.writer.write(b'\x04\x00\x00\x00' + key)
 
-        self.writer.write(
-            b'\x04' + down.to_bytes(1, 'big') +
-            b'\x00\x00' + keys[key].to_bytes(4, 'big'))
+    @contextmanager
+    def hold(self, *keys: str):
+        with ExitStack() as stack:
+            for key in keys:
+                stack.enter_context(self._hold(key))
+            yield
+
+    def press(self, *keys: str):
+        with self.hold(*keys):
+            pass
+
+    def write(self, text: str):
+        for key in text:
+            with self.hold(key):
+                pass
