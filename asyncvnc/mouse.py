@@ -1,31 +1,6 @@
 from asyncio import StreamWriter
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from enum import Flag
-
-
-class MouseButton(Flag):
-    """
-    Mouse button state.
-    """
-
-    #: No mouse button
-    NONE = 0
-
-    #: Left mouse button
-    LEFT = 1
-
-    #: Middle mouse button
-    MIDDLE = 2
-
-    #: Right mouse button
-    RIGHT = 4
-
-    #: Scroll up
-    SCROLL_UP = 8
-
-    #: Scroll down
-    SCROLL_DOWN = 16
 
 
 @dataclass
@@ -35,43 +10,79 @@ class Mouse:
     """
 
     writer: StreamWriter = field(repr=False)
-    _buttons: MouseButton = MouseButton.NONE
-    _x: int = 0
-    _y: int = 0
+    buttons: int = 0
+    x: int = 0
+    y: int = 0
 
     def _update(self):
         self.writer.write(b'\x05')
-        self.writer.write(self._buttons.value.to_bytes(1, 'big'))
-        self.writer.write(self._x.to_bytes(2, 'big'))
-        self.writer.write(self._y.to_bytes(2, 'big'))
-
-    def move(self, x: int, y: int):
-        self._x = x
-        self._y = y
-        self._update()
+        self.writer.write(self.buttons.to_bytes(1, 'big'))
+        self.writer.write(self.x.to_bytes(2, 'big'))
+        self.writer.write(self.y.to_bytes(2, 'big'))
 
     @contextmanager
-    def hold(self, button: MouseButton = MouseButton.LEFT):
-        self._buttons |= button
+    def _hold(self, button):
+        self.buttons |= button
         self._update()
         try:
             yield
         finally:
-            self._buttons &= ~button
+            self.buttons &= ~button
             self._update()
 
-    def click(self, button: MouseButton = MouseButton.LEFT):
-        with self.hold(button):
+    def move(self, x: int, y: int):
+        """
+        Moves the mouse cursor to the given co-ordinates.
+        """
+        self.x = x
+        self.y = y
+        self._update()
+
+    @contextmanager
+    def hold(self):
+        """
+        Context manager that presses the left mouse button on enter, and releases it on exit.
+        """
+
+        with self._hold(1):
+            yield
+
+    def click(self):
+        """
+        Presses and releases the left mouse button.
+        """
+
+        with self._hold(1):
             pass
 
     def middle_click(self):
-        self.click(MouseButton.MIDDLE)
+        """
+        Presses and releases the middle mouse button.
+        """
+
+        with self._hold(2):
+            pass
 
     def right_click(self):
-        self.click(MouseButton.RIGHT)
+        """
+        Presses and releases the right mouse button.
+        """
+
+        with self._hold(4):
+            pass
 
     def scroll_up(self):
-        self.click(MouseButton.SCROLL_UP)
+        """
+        Scrolls up with the mouse wheel.
+        """
+
+        with self._hold(8):
+            pass
 
     def scroll_down(self):
-        self.click(MouseButton.SCROLL_DOWN)
+        """
+        Scrolls down with the mouse wheel.
+        """
+
+        with self._hold(16):
+            pass
