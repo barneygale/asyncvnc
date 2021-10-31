@@ -153,6 +153,7 @@ keys = \
  'Ccircumflex': 710,
  'Ch': 65185,
  'Clear': 65291,
+ 'Cmd': 65515,
  'Codeinput': 65335,
  'Control_L': 65507,
  'Control_R': 65508,

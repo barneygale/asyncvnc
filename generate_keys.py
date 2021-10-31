@@ -21,6 +21,7 @@ def main():
 
     keys['Del'] = keys['Delete']
     keys['Esc'] = keys['Escape']
+    keys['Cmd'] = keys['Super_L']
     keys['Alt'] = keys['Alt_L']
     keys['Ctrl'] = keys['Control_L']
     keys['Super'] = keys['Super_L']
