@@ -2,7 +2,20 @@ from asyncio import StreamWriter
 from contextlib import contextmanager, ExitStack
 from dataclasses import dataclass, field
 
-from asyncvnc.keys import keys
+from keysymdef import keysymdef
+
+
+keys = {}
+keys.update((name, code) for name, code, char in keysymdef)
+keys.update((chr(char), code) for name, code, char in keysymdef if char)
+keys['Del'] = keys['Delete']
+keys['Esc'] = keys['Escape']
+keys['Cmd'] = keys['Super_L']
+keys['Alt'] = keys['Alt_L']
+keys['Ctrl'] = keys['Control_L']
+keys['Super'] = keys['Super_L']
+keys['Shift'] = keys['Shift_L']
+keys['Backspace'] = keys['BackSpace']
 
 
 @dataclass
