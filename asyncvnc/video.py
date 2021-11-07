@@ -112,7 +112,6 @@ class Video:
     #: Colour channel order
     mode: VideoMode
 
-
     #: 3D numpy array of colour data
     data: Optional[np.ndarray] = None
 
@@ -132,7 +131,7 @@ class Video:
 
         return cls(reader, writer, decompressobj(), name, width, height, mode)
 
-    def update(self) -> None:
+    def refresh(self) -> None:
         """
         Sends a video buffer update request to the server.
         """

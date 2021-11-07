@@ -27,7 +27,7 @@ class Keyboard:
     writer: StreamWriter = field(repr=False)
 
     @contextmanager
-    def _hold(self, key: str):
+    def _write(self, key: str):
         data = keys[key].to_bytes(4, 'big')
         self.writer.write(b'\x04\x01\x00\x00' + data)
         try:
@@ -43,7 +43,7 @@ class Keyboard:
 
         with ExitStack() as stack:
             for key in keys:
-                stack.enter_context(self._hold(key))
+                stack.enter_context(self._write(key))
             yield
 
     def press(self, *keys: str):
