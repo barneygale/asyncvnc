@@ -1,6 +1,5 @@
 from asyncio import StreamReader, StreamWriter
 from dataclasses import dataclass, field
-from enum import Enum
 from fractions import Fraction
 from itertools import product
 from typing import Optional
@@ -11,41 +10,16 @@ import numpy as np
 from asyncvnc.utils import read_int, read_text
 
 
-#: Common screen aspect ratios
+# Common screen aspect ratios
 screen_ratios = {Fraction(3, 2), Fraction(4, 3), Fraction(16, 10), Fraction(16, 9), Fraction(32, 9), Fraction(64, 27)}
 
-
-class VideoEncoding(Enum):
-    """
-    Video encoding.
-    """
-
-    #: ZLib encoding
-    ZLIB = 6
-
-    #: Raw encoding
-    RAW = 0
-
-
-class VideoMode(Enum):
-    """
-    Video mode (colour channel order)
-    """
-
-    #: Blue, green, red, alpha
-    BGRA = b'\x20\x18\x00\x01\x00\xff\x00\xff\x00\xff\x10\x08\x00'
-
-    #: Red, green, blue, alpha
-    RGBA = b'\x20\x18\x00\x01\x00\xff\x00\xff\x00\xff\x00\x08\x10'
-
-    #: Alpha, red, green, blue
-    ARGB = b'\x20\x18\x01\x01\x00\xff\x00\xff\x00\xff\x10\x08\x00'
-
-    #: Alpha, blue, green, red
-    ABGR = b'\x20\x18\x01\x01\x00\xff\x00\xff\x00\xff\x00\x08\x10'
-
-    def __repr__(self) -> str:
-        return '<%s.%s>' % (self.__class__.__name__, self.name)
+# Colour channel orders
+modes = {
+     b'\x20\x18\x00\x01\x00\xff\x00\xff\x00\xff\x10\x08\x00': 'bgra',
+     b'\x20\x18\x00\x01\x00\xff\x00\xff\x00\xff\x00\x08\x10': 'rgba',
+     b'\x20\x18\x01\x01\x00\xff\x00\xff\x00\xff\x10\x08\x00': 'argb',
+     b'\x20\x18\x01\x01\x00\xff\x00\xff\x00\xff\x00\x08\x10': 'abgr',
+}
 
 
 @dataclass
@@ -110,7 +84,7 @@ class Video:
     height: int
 
     #: Colour channel order
-    mode: VideoMode
+    mode: str
 
     #: 3D numpy array of colour data
     data: Optional[np.ndarray] = None
@@ -120,14 +94,11 @@ class Video:
         writer.write(b'\x01')
         width = await read_int(reader, 2)
         height = await read_int(reader, 2)
-        mode = VideoMode(await reader.readexactly(13))
+        mode = modes[await reader.readexactly(13)]
         await reader.readexactly(3)  # padding
         name = await read_text(reader, 'utf-8')
 
-        writer.write(b'\x02\x00')
-        writer.write(len(VideoEncoding).to_bytes(2, 'big'))
-        for encoding in VideoEncoding:
-            writer.write(encoding.value.to_bytes(4, 'big'))
+        writer.write(b'\x02\x00\x00\x01\x00\x00\x00\x06')
 
         return cls(reader, writer, decompressobj(), name, width, height, mode)
 
@@ -148,19 +119,21 @@ class Video:
         y = await read_int(self.reader, 2)
         width = await read_int(self.reader, 2)
         height = await read_int(self.reader, 2)
-        encoding = VideoEncoding(await read_int(self.reader, 4))
-        if encoding is VideoEncoding.RAW:
+        encoding = await read_int(self.reader, 4)
+
+        if encoding == 0:  # Raw
             data = await self.reader.readexactly(height * width * 4)
-        elif encoding is VideoEncoding.ZLIB:
+        elif encoding == 6:  # ZLib
             length = await read_int(self.reader, 4)
             data = await self.reader.readexactly(length)
             data = self.decompressor.decompress(data)
         else:
             raise ValueError(encoding)
+
         if self.data is None:
             self.data = np.zeros((self.height, self.width, 4), 'B')
         self.data[y:y + height, x:x + width] = np.ndarray((height, width, 4), 'B', data)
-        self.data[y:y + height, x:x + width, self.mode.name.index('A')] = 255
+        self.data[y:y + height, x:x + width, self.mode.index('a')] = 255
 
     def as_rgba(self) -> np.ndarray:
         """
@@ -169,15 +142,15 @@ class Video:
 
         if self.data is None:
             return np.zeros((self.height, self.width, 4), 'B')
-        if self.mode is VideoMode.RGBA:
+        if self.mode == 'rgba':
             return self.data
-        if self.mode is VideoMode.ABGR:
+        if self.mode == 'abgr':
             return self.data[:, :, ::-1]
         return np.dstack((
-            self.data[:, :, self.mode.name.index('R')],
-            self.data[:, :, self.mode.name.index('G')],
-            self.data[:, :, self.mode.name.index('B')],
-            self.data[:, :, self.mode.name.index('A')]))
+            self.data[:, :, self.mode.index('r')],
+            self.data[:, :, self.mode.index('g')],
+            self.data[:, :, self.mode.index('b')],
+            self.data[:, :, self.mode.index('a')]))
 
     def detect_screens(self) -> list[Screen]:
         """
@@ -187,7 +160,7 @@ class Video:
         if self.data is None:
             return []
 
-        mask = self.data[:, :, self.mode.name.index('A')]
+        mask = self.data[:, :, self.mode.index('a')]
         mask = np.pad(mask // 255, ((1, 1), (1, 1))).astype(np.int8)
         mask_a = mask[1:, 1:]
         mask_b = mask[1:, :-1]
