@@ -100,6 +100,9 @@ class Video:
     writer: StreamWriter = field(repr=False)
     decompressor: decompressobj = field(repr=False)
 
+    #: Desktop name
+    name: str
+
     #: Width in pixels
     width: int
 
@@ -109,8 +112,6 @@ class Video:
     #: Colour channel order
     mode: VideoMode
 
-    #: Desktop name
-    name: str
 
     #: 3D numpy array of colour data
     data: Optional[np.ndarray] = None
@@ -129,7 +130,7 @@ class Video:
         for encoding in VideoEncoding:
             writer.write(encoding.value.to_bytes(4, 'big'))
 
-        return cls(reader, writer, decompressobj(), width, height, mode, name)
+        return cls(reader, writer, decompressobj(), name, width, height, mode)
 
     def update(self) -> None:
         """
