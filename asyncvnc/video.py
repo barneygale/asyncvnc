@@ -1,12 +1,14 @@
-from asyncio import StreamWriter
+from asyncio import StreamReader, StreamWriter
 from dataclasses import dataclass, field
 from enum import Enum
 from fractions import Fraction
 from itertools import product
 from typing import Optional
-
+from zlib import decompressobj
 
 import numpy as np
+
+from asyncvnc.utils import read_int, read_text
 
 
 #: Common screen aspect ratios
@@ -94,10 +96,9 @@ class Video:
     Image buffer.
     """
 
+    reader: StreamReader = field(repr=False)
     writer: StreamWriter = field(repr=False)
-
-    #: Colour channel order
-    mode: VideoMode
+    decompressor: decompressobj = field(repr=False)
 
     #: Width in pixels
     width: int
@@ -105,8 +106,61 @@ class Video:
     #: Height in pixels
     height: int
 
+    #: Colour channel order
+    mode: VideoMode
+
+    #: Desktop name
+    name: str
+
     #: 3D numpy array of colour data
     data: Optional[np.ndarray] = None
+
+    @classmethod
+    async def create(cls, reader: StreamReader, writer: StreamWriter):
+        writer.write(b'\x01')
+        width = await read_int(reader, 2)
+        height = await read_int(reader, 2)
+        mode = VideoMode(await reader.readexactly(13))
+        await reader.readexactly(3)  # padding
+        name = await read_text(reader, 'utf-8')
+
+        writer.write(b'\x02\x00')
+        writer.write(len(VideoEncoding).to_bytes(2, 'big'))
+        for encoding in VideoEncoding:
+            writer.write(encoding.value.to_bytes(4, 'big'))
+
+        return cls(reader, writer, decompressobj(), width, height, mode, name)
+
+    def update(self) -> None:
+        """
+        Sends a video buffer update request to the server.
+        """
+
+        incremental = self.data is not None
+        self.writer.write(b'\x03')
+        self.writer.write(incremental.to_bytes(1, 'big'))
+        self.writer.write(b'\x00\x00\x00\x00')  # x, y
+        self.writer.write(self.width.to_bytes(2, 'big'))
+        self.writer.write(self.height.to_bytes(2, 'big'))
+
+    async def read(self) -> None:
+        x = await read_int(self.reader, 2)
+        y = await read_int(self.reader, 2)
+        width = await read_int(self.reader, 2)
+        height = await read_int(self.reader, 2)
+        encoding = VideoEncoding(await read_int(self.reader, 4))
+        if encoding is VideoEncoding.RAW:
+            data = await self.reader.readexactly(height * width * 4)
+        elif encoding is VideoEncoding.ZLIB:
+            length = await read_int(self.reader, 4)
+            data = await self.reader.readexactly(length)
+            data = self.decompressor.decompress(data)
+        else:
+            raise ValueError(encoding)
+        if self.data is None:
+            self.data = np.zeros((self.height, self.width, 4), 'B')
+        self.data[y:y + height, x:x + width] = np.ndarray((height, width, 4), 'B', data)
+        self.data[y:y + height, x:x + width, self.mode.name.index('A')] = 255
 
     def as_rgba(self) -> np.ndarray:
         """
@@ -124,24 +178,6 @@ class Video:
             self.data[:, :, self.mode.name.index('G')],
             self.data[:, :, self.mode.name.index('B')],
             self.data[:, :, self.mode.name.index('A')]))
-
-    def update(self) -> None:
-        """
-        Sends a video buffer update request to the server.
-        """
-
-        incremental = self.data is not None
-        self.writer.write(b'\x03')
-        self.writer.write(incremental.to_bytes(1, 'big'))
-        self.writer.write(b'\x00\x00\x00\x00')  # x, y
-        self.writer.write(self.width.to_bytes(2, 'big'))
-        self.writer.write(self.height.to_bytes(2, 'big'))
-
-    def handle_update(self, data: bytes, x: int, y: int, width: int, height: int) -> None:
-        if self.data is None:
-            self.data = np.zeros((self.height, self.width, 4), 'B')
-        self.data[y:y + height, x:x + width] = np.ndarray((height, width, 4), 'B', data)
-        self.data[y:y + height, x:x + width, self.mode.name.index('A')] = 255
 
     def detect_screens(self) -> list[Screen]:
         """

@@ -12,7 +12,7 @@ password = 'mypassword'
 async def main():
     async with asyncssh.connect(host, username=username, password=password) as conn:
         reader, writer = await conn.open_connection('localhost', 5900)
-        client = await asyncvnc.auth(reader, writer, username, password)
+        client = await asyncvnc.Client.create(reader, writer, username, password)
         print(client)
 
 

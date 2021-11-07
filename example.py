@@ -24,7 +24,7 @@ async def main():
     reader, writer = await asyncio.open_connection(host, port)
 
     print('authenticating')
-    client = await asyncvnc.auth(reader, writer, username, password)
+    client = await asyncvnc.Client.create(reader, writer, username, password)
 
     print('requesting image')
     client.video.update()
