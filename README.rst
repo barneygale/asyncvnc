@@ -1,19 +1,147 @@
 AsyncVNC: Asynchronous VNC for Python
 =====================================
 
-AsyncVNC is a Python package which provides a VNC (RFB) client implementation on top of the asyncio framework.
+AsyncVNC is a Python package which provides an asynchronous client implementation of the VNC (RFB) protocol on top of
+the Python 3.6+ asyncio framework.
+
+.. code-block::
+
+    import asyncio, asyncvnc
+
+    async def run_client():
+        with asyncvnc.connect('localhost', 5900, 'username', 'password') as client:
+            client.keyboard.write('hello world!')
+
+    asyncio.run(run_client())
 
 
 Features
 --------
 
-- Mac (username/password) and VNC (password) authentication
-- Keyboard and mouse input
-- Frame buffer update requests, updates, and exports to 32-bit RGBA
-- Clipboard updates
+- Full support for keyboard, mouse, video and clipboard updates.
+
+  * The frame buffer can be exported as an RGBA numpy array.
+  * Keyboard keys are specified by name or character.
+
+- Compatibility with traditional VNC servers (RealVNC, TightVNC, TigerVNC, etc).
+
+  * Including unauthenticated connections.
+  * Including password authentication with Triple DES.
+
+- Compatibility with the built-in macOS Remote Desktop server.
+
+  * Including username/password authentication with DH, MD5, and AES128-ECB.
+  * Connects to the desktop, not the login screen.
+
+- Detection of multi-head frame buffer data using a novel algorithm.
+- Support for tunneling VNC over SSH with AsyncSSH.
+- Support for image data compression with zlib.
 
 
-Planned Features
-----------------
+Installation
+------------
 
-- binary or utf-8 clipboard
+Install AsyncVNC by running::
+
+    pip install asyncvnc
+
+
+Connecting to a server
+----------------------
+
+This snippet connects to a local unauthenticated VNC server, prints information, and disconnects::
+
+    import asyncio, asyncvnc
+
+    async def run_client():
+        async with asyncvnc.connect('localhost') as client:
+            print(client)
+
+    asyncio.run(run_client())
+
+To log in to a macOS server, supply *username* and *password* arguments::
+
+    async with asyncvnc.connect('localhost', username='user123', password='h4x0r'):
+        ...
+
+For traditional authenticated VNC servers, the *password* argument is required but not *username*.
+
+.. warning::
+
+    Traditional VNC authentication is woefully insecure. For best results, configure your VNC server to listen only on
+    ``127.0.0.1``. If you need external access, use an SSH tunnel.
+
+
+To tunnel VNC over SSH, use the AsyncSSH package (after which this package is modelled)::
+
+    import asyncio, asyncssh, asyncvnc
+
+    async def run_client():
+        async with asyncssh.connect('myserver') as conn:
+            async with asyncvnc.connect('localhost', opener=conn.open_connection) as client:
+                print(client)
+
+    asyncio.run(run_client())
+
+
+Sending events
+--------------
+
+Keyboard and mouse objects provide context managers for holding down keys and buttons::
+
+    with client.keyboard.hold('Ctrl'):
+        ...
+
+    with client.mouse.hold():
+        ...
+
+The keyboard has methods for pressing keys and writing text::
+
+    client.keyboard.press('Ctrl', 'c')  # keys are stacked
+    client.keyboard.write('hi there!')  # keys are queued
+
+The mouse has methods for moving the cursor and clicking::
+
+    client.mouse.move(100, 200)
+    client.mouse.click(3)  # right click
+
+
+Taking a screenshot
+-------------------
+
+To retrieve an image from the VNC server and save it as a PNG file::
+
+    import asyncio, asyncvnc
+    from PIL import Image
+
+    async def run_client():
+        async with asyncvnc.connect('localhost') as client:
+
+            # Request a video update
+            client.video.refresh()
+
+            # Handle packets until Ctrl-C'd
+            while True:
+                try:
+                    update = await client.read()
+                    print(update)
+                except KeyboardInterrupt:
+                    break
+
+            # Retrieve pixels as a 3D numpy array
+            pixels = client.video.as_rgba()
+
+            # Save as PNG using PIL/pillow
+            image = Image.fromarray(pixels)
+            image.save(filename)
+
+    asyncio.run(run_client())
+
+
+The macOS VNC server composites attached monitors/screens into a single frame buffer. It does not send updates for
+unoccupied regions; we can use this information to detect screens::
+
+    pixels = client.video.as_rgba()
+    for screen in client.video.detect_screens():
+        screen_pixels = pixels[screen.slices]
+
