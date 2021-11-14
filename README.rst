@@ -115,7 +115,7 @@ The keyboard has methods for pressing keys and writing text::
 The mouse has methods for moving the cursor and clicking::
 
     client.mouse.move(100, 200)
-    client.mouse.click(3)  # right click
+    client.mouse.click(2)  # right click
 
 
 Taking a screenshot

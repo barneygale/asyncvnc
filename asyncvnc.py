@@ -145,7 +145,7 @@ class Mouse:
             self.y.to_bytes(2, 'big'))
 
     @contextmanager
-    def hold(self, button: int = 1):
+    def hold(self, button: int = 0):
         """
         Context manager that presses a mouse button on enter, and releases it on exit.
         """
@@ -159,7 +159,7 @@ class Mouse:
             self.buttons &= ~mask
             self._write()
 
-    def click(self, button: int = 1):
+    def click(self, button: int = 0):
         """
         Presses and releases a mouse button.
         """
