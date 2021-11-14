@@ -2,7 +2,7 @@ AsyncVNC: Asynchronous VNC for Python
 =====================================
 
 AsyncVNC is a Python package which provides an asynchronous client implementation of the VNC (RFB) protocol on top of
-the Python 3.6+ asyncio framework.
+the asyncio framework.
 
 .. code-block::
 
@@ -40,6 +40,8 @@ Features
 
 Installation
 ------------
+
+This package requires Python 3.9+.
 
 Install AsyncVNC by running::
 
