@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from fractions import Fraction
 from itertools import product
-from typing import Optional, Callable
+from typing import Callable, Dict, List, Optional, Set, Tuple
 from zlib import decompressobj
 
 import numpy as np
@@ -17,7 +17,7 @@ from keysymdef import keysymdef  # type: ignore
 
 
 # Keyboard keys
-key_codes: dict[str, int] = {}
+key_codes: Dict[str, int] = {}
 key_codes.update((name, code) for name, code, char in keysymdef)
 key_codes.update((chr(char), code) for name, code, char in keysymdef if char)
 key_codes['Del'] = key_codes['Delete']
@@ -30,11 +30,11 @@ key_codes['Shift'] = key_codes['Shift_L']
 key_codes['Backspace'] = key_codes['BackSpace']
 
 # Common screen aspect ratios
-screen_ratios: set[Fraction] = {
+screen_ratios: Set[Fraction] = {
     Fraction(3, 2), Fraction(4, 3), Fraction(16, 10), Fraction(16, 9), Fraction(32, 9), Fraction(64, 27)}
 
 # Colour channel orders
-video_modes: dict[bytes, str] = {
+video_modes: Dict[bytes, str] = {
      b'\x20\x18\x00\x01\x00\xff\x00\xff\x00\xff\x10\x08\x00': 'bgra',
      b'\x20\x18\x00\x01\x00\xff\x00\xff\x00\xff\x00\x08\x10': 'rgba',
      b'\x20\x18\x01\x01\x00\xff\x00\xff\x00\xff\x10\x08\x00': 'argb',
@@ -196,7 +196,7 @@ class Screen:
     height: int
 
     @property
-    def slices(self) -> tuple[slice, slice]:
+    def slices(self) -> Tuple[slice, slice]:
         """
         Object that can be used to crop the video buffer to this screen.
         """
@@ -308,7 +308,7 @@ class Video:
             self.data[:, :, self.mode.index('b')],
             self.data[:, :, self.mode.index('a')]))
 
-    def detect_screens(self) -> list[Screen]:
+    def detect_screens(self) -> List[Screen]:
         """
         Detect physical screens by inspecting the alpha channel.
         """

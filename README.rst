@@ -51,7 +51,7 @@ Features
 Installation
 ------------
 
-This package requires Python 3.9+.
+This package requires Python 3.7+.
 
 Install AsyncVNC by running::
 
