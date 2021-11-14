@@ -215,7 +215,7 @@ class Screen:
         ratios = {Fraction(self.width, self.height).limit_denominator(64),
                   Fraction(self.height, self.width).limit_denominator(64)}
         if not ratios & screen_ratios:
-            value *= min(ratios)
+            value *= min(ratios) * 0.5
         return value
 
 
