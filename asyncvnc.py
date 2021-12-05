@@ -4,14 +4,15 @@ from dataclasses import dataclass, field
 from enum import Enum
 from fractions import Fraction
 from itertools import product
+from os import urandom
 from typing import Callable, Dict, List, Optional, Set, Tuple
 from zlib import decompressobj
 
 import numpy as np
 
-from cryptography.hazmat.primitives.asymmetric import dh
+from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.hashes import Hash, MD5
+from cryptography.hazmat.primitives.serialization import load_der_public_key
 
 from keysymdef import keysymdef  # type: ignore
 
@@ -412,7 +413,7 @@ class Client:
         writer.write(b'RFB 003.008\n')
 
         security_types = set(await reader.readexactly(await read_int(reader, 1)))
-        for security_type in (30, 0, 1):
+        for security_type in (33, 0, 1):
             if security_type in security_types:
                 writer.write(security_type.to_bytes(1, 'big'))
                 break
@@ -420,27 +421,25 @@ class Client:
             raise ValueError(f'unsupported security types: {security_types}')
 
         # Apple authentication
-        if security_type == 30:
+        if security_type == 33:
             if not username or not password:
                 raise ValueError('server requires username and password')
-            g = await read_int(reader, 2)  # generator
-            s = await read_int(reader, 2)  # key size
-            p = await read_int(reader, s)  # prime modulus
-            y = await read_int(reader, s)  # public key
-            parameter_numbers = dh.DHParameterNumbers(p, g)
-            server_public_numbers = dh.DHPublicNumbers(y, parameter_numbers)
-            private_key = parameter_numbers.parameters().generate_private_key()
-            public_numbers = private_key.public_key().public_numbers()
-            aes_key = private_key.exchange(server_public_numbers.public_key())
-            md5_hash = Hash(MD5())
-            md5_hash.update(aes_key)
-            aes_key = md5_hash.finalize()
+            writer.write(b'\x00\x00\x00\x0a\x01\x00RSA1\x00\x00\x00\x00')
+            await reader.readexactly(4)  # packet length
+            await reader.readexactly(2)  # key size
+            public_key = load_der_public_key(await reader.readexactly(await read_int(reader, 4)))
+            await reader.readexactly(1)  # unknown
+            aes_key = urandom(16)
             encryptor = Cipher(algorithms.AES(aes_key), modes.ECB()).encryptor()
             writer.write(
+                b'\x00\x00\x01\x8a\x01\x00RSA1'
+                b'\x00\x01' +
                 encryptor.update(username.encode('utf8')[:64].ljust(64, b'\x00')) +
                 encryptor.update(password.encode('utf8')[:64].ljust(64, b'\x00')) +
                 encryptor.finalize() +
-                public_numbers.y.to_bytes(s, 'big'))
+                b'\x00\x01' +
+                public_key.encrypt(aes_key, padding=padding.PKCS1v15()))
+            await reader.readexactly(4)  # unknown
 
         # VNC authentication
         if security_type == 1:

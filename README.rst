@@ -40,7 +40,7 @@ Features
 
 - Compatibility with the built-in macOS Remote Desktop server.
 
-  * Including username/password authentication with DH, MD5, and AES128-ECB.
+  * Including username/password authentication with 2048-bit RSA keys and 128-bit AES.
   * Connects to the desktop, not the login screen.
 
 - Detection of multi-head frame buffer data using a novel algorithm.
