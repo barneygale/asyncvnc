@@ -451,17 +451,22 @@ class Client:
             challenge = await reader.readexactly(16)
             writer.write(encryptor.update(challenge) + encryptor.finalize())
 
-        auth_result = await read_text(reader, 'utf-8')
-        if auth_result:
-            raise PermissionError(auth_result)
-
-        return cls(
-            reader=reader,
-            writer=writer,
-            clipboard=Clipboard(writer),
-            keyboard=Keyboard(writer),
-            mouse=Mouse(writer),
-            video=await Video.create(reader, writer))
+        auth_result = await read_int(reader, 4)
+        if auth_result == 0:
+            return cls(
+                reader=reader,
+                writer=writer,
+                clipboard=Clipboard(writer),
+                keyboard=Keyboard(writer),
+                mouse=Mouse(writer),
+                video=await Video.create(reader, writer))
+        elif auth_result == 1:
+            raise PermissionError('Auth failed')
+        elif auth_result == 2:
+            raise PermissionError('Auth failed (too many attempts)')
+        else:
+            reason = await reader.readexactly(auth_result)
+            raise PermissionError(reason.decode('utf-8'))
 
     async def read(self) -> UpdateType:
         """
