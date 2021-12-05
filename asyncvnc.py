@@ -61,6 +61,14 @@ async def read_text(reader: StreamReader, encoding: str) -> str:
     return data.decode(encoding)
 
 
+def pack_ard_credential(data):
+    data = data.encode('utf-8') + b'\x00'
+    if len(data) < 64:
+        data += urandom(64 - len(data))
+    else:
+        data = data[:64]
+    return data
+
 @dataclass
 class Clipboard:
     """
@@ -434,8 +442,8 @@ class Client:
             writer.write(
                 b'\x00\x00\x01\x8a\x01\x00RSA1'
                 b'\x00\x01' +
-                encryptor.update(username.encode('utf8')[:64].ljust(64, b'\x00')) +
-                encryptor.update(password.encode('utf8')[:64].ljust(64, b'\x00')) +
+                encryptor.update(pack_ard_credential(username)) +
+                encryptor.update(pack_ard_credential(password)) +
                 encryptor.finalize() +
                 b'\x00\x01' +
                 public_key.encrypt(aes_key, padding=padding.PKCS1v15()))
