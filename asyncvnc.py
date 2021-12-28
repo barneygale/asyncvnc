@@ -10,7 +10,7 @@ from zlib import decompressobj
 
 import numpy as np
 
-from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.serialization import load_der_public_key
 
@@ -68,6 +68,7 @@ def pack_ard_credential(data):
     else:
         data = data[:64]
     return data
+
 
 @dataclass
 class Clipboard:
@@ -409,13 +410,17 @@ class Client:
     #: The video buffer.
     video: Video
 
+    #: The server's public key (Mac only)
+    host_key: Optional[rsa.RSAPublicKey]
+
     @classmethod
     async def create(
             cls,
             reader: StreamReader,
             writer: StreamWriter,
-            username: str = '',
-            password: str = '') -> 'Client':
+            username: Optional[str] = None,
+            password: Optional[str] = None,
+            host_key: Optional[rsa.RSAPublicKey] = None) -> 'Client':
 
         intro = await reader.readline()
         if intro[:4] != b'RFB ':
@@ -432,13 +437,16 @@ class Client:
 
         # Apple authentication
         if security_type == 33:
-            if not username or not password:
+            if username is None or password is None:
                 raise ValueError('server requires username and password')
-            writer.write(b'\x00\x00\x00\x0a\x01\x00RSA1\x00\x00\x00\x00')
-            await reader.readexactly(4)  # packet length
-            await reader.readexactly(2)  # key size
-            public_key = load_der_public_key(await reader.readexactly(await read_int(reader, 4)))
-            await reader.readexactly(1)  # unknown
+            if host_key is None:
+                writer.write(b'\x00\x00\x00\x0a\x01\x00RSA1\x00\x00\x00\x00')
+                await reader.readexactly(4)  # packet length
+                await reader.readexactly(2)  # packet version
+                host_key_length = await read_int(reader, 4)
+                host_key = await reader.readexactly(host_key_length)
+                host_key = load_der_public_key(host_key)
+                await reader.readexactly(1)  # unknown
             aes_key = urandom(16)
             encryptor = Cipher(algorithms.AES(aes_key), modes.ECB()).encryptor()
             writer.write(
@@ -448,12 +456,12 @@ class Client:
                 encryptor.update(pack_ard_credential(password)) +
                 encryptor.finalize() +
                 b'\x00\x01' +
-                public_key.encrypt(aes_key, padding=padding.PKCS1v15()))
+                host_key.encrypt(aes_key, padding=padding.PKCS1v15()))
             await reader.readexactly(4)  # unknown
 
         # VNC authentication
         if security_type == 1:
-            if not password:
+            if password is None:
                 raise ValueError('server requires password')
             des_key = password.encode('ascii')[:8].ljust(8, b'\x00')
             des_key = des_key + des_key + des_key
@@ -466,6 +474,7 @@ class Client:
             return cls(
                 reader=reader,
                 writer=writer,
+                host_key=host_key,
                 clipboard=Clipboard(writer),
                 keyboard=Keyboard(writer),
                 mouse=Mouse(writer),
@@ -505,14 +514,20 @@ class Client:
 
 
 @asynccontextmanager
-async def connect(host: str, port: int = 5900, username: str = '', password: str = '', opener=None):
+async def connect(
+        host: str,
+        port: int = 5900,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        host_key: Optional[rsa.RSAPublicKey] = None,
+        opener=None):
     """
     Make a VNC client connection. This is an async context manager that returns a connected :class:`Client` instance.
     """
 
     opener = opener or open_connection
     reader, writer = await opener(host, port)
-    client = await Client.create(reader, writer, username, password)
+    client = await Client.create(reader, writer, username, password, host_key)
     try:
         yield client
     finally:
