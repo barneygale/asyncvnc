@@ -417,7 +417,9 @@ class Client:
             username: str = '',
             password: str = '') -> 'Client':
 
-        await reader.readexactly(12)
+        intro = await reader.readline()
+        if intro[:4] != b'RFB ':
+            raise ValueError('not a VNC server')
         writer.write(b'RFB 003.008\n')
 
         security_types = set(await reader.readexactly(await read_int(reader, 1)))
