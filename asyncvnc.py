@@ -61,7 +61,7 @@ async def read_text(reader: StreamReader, encoding: str) -> str:
     return data.decode(encoding)
 
 
-def pack_ard_credential(data):
+def pack_ard(data):
     data = data.encode('utf-8') + b'\x00'
     if len(data) < 64:
         data += urandom(64 - len(data))
@@ -448,15 +448,13 @@ class Client:
                 host_key = load_der_public_key(host_key)
                 await reader.readexactly(1)  # unknown
             aes_key = urandom(16)
-            encryptor = Cipher(algorithms.AES(aes_key), modes.ECB()).encryptor()
+            cipher = Cipher(algorithms.AES(aes_key), modes.ECB())
+            encryptor = cipher.encryptor()
+            credentials = pack_ard(username) + pack_ard(password)
             writer.write(
-                b'\x00\x00\x01\x8a\x01\x00RSA1'
-                b'\x00\x01' +
-                encryptor.update(pack_ard_credential(username)) +
-                encryptor.update(pack_ard_credential(password)) +
-                encryptor.finalize() +
-                b'\x00\x01' +
-                host_key.encrypt(aes_key, padding=padding.PKCS1v15()))
+                b'\x00\x00\x01\x8a\x01\x00RSA1' +
+                b'\x00\x01' + encryptor.update(credentials) +
+                b'\x00\x01' + host_key.encrypt(aes_key, padding=padding.PKCS1v15()))
             await reader.readexactly(4)  # unknown
 
         # VNC authentication
