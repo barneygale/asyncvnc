@@ -115,7 +115,9 @@ The keyboard has methods for pressing keys and writing text::
 The mouse has methods for moving the cursor and clicking::
 
     client.mouse.move(100, 200)
-    client.mouse.click(2)  # right click
+    client.mouse.click()
+    client.mouse.right_click()
+    client.mouse.scroll_up()
 
 
 Taking a screenshot
@@ -145,7 +147,7 @@ To retrieve an image from the VNC server and save it as a PNG file::
 
             # Save as PNG using PIL/pillow
             image = Image.fromarray(pixels)
-            image.save(filename)
+            image.save('screenshot.png')
 
     asyncio.run(run_client())
 

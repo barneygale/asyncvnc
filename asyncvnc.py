@@ -177,6 +177,36 @@ class Mouse:
         with self.hold(button):
             pass
 
+    def middle_click(self):
+        """
+        Presses and releases the middle mouse button.
+        """
+
+        self.click(1)
+
+    def right_click(self):
+        """
+        Presses and releases the right mouse button.
+        """
+
+        self.click(2)
+
+    def scroll_up(self, repeat=1):
+        """
+        Scrolls the mouse wheel upwards.
+        """
+
+        for _ in range(repeat):
+            self.click(3)
+
+    def scroll_down(self, repeat=1):
+        """
+        Scrolls the mouse wheel downwards.
+        """
+
+        for _ in range(repeat):
+            self.click(4)
+
     def move(self, x: int, y: int):
         """
         Moves the mouse cursor to the given co-ordinates.
