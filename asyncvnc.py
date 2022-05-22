@@ -297,18 +297,23 @@ class Video:
         decompress = decompressobj().decompress
         return cls(reader, writer, decompress, name, width, height, mode)
 
-    def refresh(self):
+    def refresh(self, x: int = 0, y: int = 0, width: Optional[int] = None, height: Optional[int] = None):
         """
         Sends a video buffer update request to the server.
         """
 
         incremental = self.data is not None
+        if width is None:
+            width = self.width
+        if height is None:
+            height = self.height
         self.writer.write(
             b'\x03' +
             incremental.to_bytes(1, 'big') +
-            b'\x00\x00\x00\x00' +  # x, y
-            self.width.to_bytes(2, 'big') +
-            self.height.to_bytes(2, 'big'))
+            x.to_bytes(2, 'big') +
+            y.to_bytes(2, 'big') +
+            width.to_bytes(2, 'big') +
+            height.to_bytes(2, 'big'))
 
     async def read(self):
         x = await read_int(self.reader, 2)
