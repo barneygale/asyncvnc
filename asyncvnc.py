@@ -462,16 +462,16 @@ class Client:
             raise ValueError('not a VNC server')
         writer.write(b'RFB 003.008\n')
 
-        security_types = set(await reader.readexactly(await read_int(reader, 1)))
-        for security_type in (33, 0, 1):
-            if security_type in security_types:
-                writer.write(security_type.to_bytes(1, 'big'))
+        auth_types = set(await reader.readexactly(await read_int(reader, 1)))
+        for auth_type in (33, 1, 2):
+            if auth_type in auth_types:
+                writer.write(auth_type.to_bytes(1, 'big'))
                 break
         else:
-            raise ValueError(f'unsupported security types: {security_types}')
+            raise ValueError(f'unsupported auth types: {auth_types}')
 
         # Apple authentication
-        if security_type == 33:
+        if auth_type == 33:
             if username is None or password is None:
                 raise ValueError('server requires username and password')
             if host_key is None:
@@ -493,7 +493,7 @@ class Client:
             await reader.readexactly(4)  # unknown
 
         # VNC authentication
-        if security_type == 1:
+        if auth_type == 2:
             if password is None:
                 raise ValueError('server requires password')
             des_key = password.encode('ascii')[:8].ljust(8, b'\x00')
