@@ -289,7 +289,10 @@ class Video:
         writer.write(b'\x01')
         width = await read_int(reader, 2)
         height = await read_int(reader, 2)
-        mode = video_modes[await reader.readexactly(13)]
+        modes = bytearray(await reader.readexactly(13))
+        modes[2] &= 1  # set big endian flag to 0 or 1
+        modes[3] &= 1  # set true colour flag to 0 or 1
+        mode = video_modes[bytes(modes)]
         await reader.readexactly(3)  # padding
         name = await read_text(reader, 'utf-8')
 
