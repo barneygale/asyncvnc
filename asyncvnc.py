@@ -285,14 +285,27 @@ class Video:
     data: Optional[np.ndarray] = None
 
     @classmethod
-    async def create(cls, reader: StreamReader, writer: StreamWriter) -> 'Video':
+    async def create(
+        cls,
+        reader: StreamReader,
+        writer: StreamWriter,
+        force_mode: Optional[str] = None,
+
+    ) -> 'Video':
         writer.write(b'\x01')
         width = await read_int(reader, 2)
         height = await read_int(reader, 2)
-        mode_data = bytearray(await reader.readexactly(13))
+        mode_bits = await reader.readexactly(13)
+        mode_data = bytearray(mode_bits)
         mode_data[2] &= 1  # set big endian flag to 0 or 1
         mode_data[3] &= 1  # set true colour flag to 0 or 1
-        mode = video_modes[bytes(mode_data)]
+
+        # allow user to force a ``mode: str`` if they know it works.
+        if force_mode:
+            mode = 'rgba'
+        else:
+            mode = video_modes[bytes(mode_data)]
+
         await reader.readexactly(3)  # padding
         name = await read_text(reader, 'utf-8')
 
@@ -453,12 +466,14 @@ class Client:
 
     @classmethod
     async def create(
-            cls,
-            reader: StreamReader,
-            writer: StreamWriter,
-            username: Optional[str] = None,
-            password: Optional[str] = None,
-            host_key: Optional[rsa.RSAPublicKey] = None) -> 'Client':
+        cls,
+        reader: StreamReader,
+        writer: StreamWriter,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        host_key: Optional[rsa.RSAPublicKey] = None,
+        force_video_mode: Optional[str] = None,
+    ) -> 'Client':
 
         intro = await reader.readline()
         if intro[:4] != b'RFB ':
@@ -514,7 +529,10 @@ class Client:
                 clipboard=Clipboard(writer),
                 keyboard=Keyboard(writer),
                 mouse=Mouse(writer),
-                video=await Video.create(reader, writer))
+                video=await Video.create(
+                    reader, writer, force_mode=force_video_mode,
+                ),
+            )
         elif auth_result == 1:
             raise PermissionError('Auth failed')
         elif auth_result == 2:
@@ -551,19 +569,28 @@ class Client:
 
 @asynccontextmanager
 async def connect(
-        host: str,
-        port: int = 5900,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        host_key: Optional[rsa.RSAPublicKey] = None,
-        opener=None):
+    host: str,
+    port: int = 5900,
+    username: Optional[str] = None,
+    password: Optional[str] = None,
+    host_key: Optional[rsa.RSAPublicKey] = None,
+    force_video_mode: Optional[str] = None,
+    opener=None,
+):
     """
     Make a VNC client connection. This is an async context manager that returns a connected :class:`Client` instance.
     """
 
     opener = opener or open_connection
     reader, writer = await opener(host, port)
-    client = await Client.create(reader, writer, username, password, host_key)
+    client = await Client.create(
+        reader,
+        writer,
+        username,
+        password,
+        host_key,
+        force_video_mode=force_video_mode,
+    )
     try:
         yield client
     finally:
