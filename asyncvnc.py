@@ -292,10 +292,14 @@ class Video:
         mode_data = bytearray(await reader.readexactly(13))
         mode_data[2] &= 1  # set big endian flag to 0 or 1
         mode_data[3] &= 1  # set true colour flag to 0 or 1
-        mode = video_modes[bytes(mode_data)]
+        mode = video_modes.get(bytes(mode_data))
         await reader.readexactly(3)  # padding
         name = await read_text(reader, 'utf-8')
 
+        if mode is None:
+            mode = 'rgba'
+            writer.write(b'\x00\x00\x00\x00\x20\x18\x00\x01\x00\xff'
+                         b'\x00\xff\x00\xff\x00\x08\x10\x00\x00\x00')
         writer.write(b'\x02\x00\x00\x01\x00\x00\x00\x06')
         decompress = decompressobj().decompress
         return cls(reader, writer, decompress, name, width, height, mode)
