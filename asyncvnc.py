@@ -504,7 +504,7 @@ class Client:
             if password is None:
                 raise ValueError('server requires password')
             des_key = password.encode('ascii')[:8].ljust(8, b'\x00')
-            des_key = des_key + des_key + des_key
+            des_key = bytes(int(bin(n)[:1:-1], 2) for n in des_key)
             encryptor = Cipher(algorithms.TripleDES(des_key), modes.ECB()).encryptor()
             challenge = await reader.readexactly(16)
             writer.write(encryptor.update(challenge) + encryptor.finalize())
