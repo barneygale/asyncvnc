@@ -38,9 +38,8 @@ def sig_prog(proc, sig):
     assert ret
 
 
-# TODO: parametrization with a passwd for
-# https://github.com/barneygale/asyncvnc/issues/1
 @pytest.fixture(
+    # password parameteriztion
     params=[None, 'doggy'],
     ids=lambda param: f'password={param}',
 )
@@ -102,7 +101,6 @@ def test_basic_connection_maybe_auth(
             'localhost',
             port=port,
             force_video_mode=force_vid,
-            # TODO: show this is broken
             password=pw,
 
         ) as client:
