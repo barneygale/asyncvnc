@@ -1,6 +1,7 @@
 import asyncio
 import platform
 import signal
+import socket
 import subprocess
 import sys
 import time
@@ -85,15 +86,32 @@ def x11vnc(
     )
 
     assert not proc.returncode
-    patt = 'The VNC desktop is'
 
-    output = proc.stderr.readline().decode()
-    while patt not in output:
-        output = proc.stderr.readline().decode()
+    timeout = 3
+    start = time.time()
+
+    while (
+        time.time() - start < timeout
+    ):
+        s = socket.socket()
+        sockaddr = ('127.0.0.1', port)
+        try:
+            s.connect(sockaddr)
+            break
+        except Exception:
+            print(f'waiting for vnc server socket to come up: {sockaddr}')
+            time.sleep(0.5)
+
+        finally:
+            s.close()
 
         # XXX: for debugging these tests if necessary
+        # output = proc.stderr.readline().decode()
         # if output:
         #     print(output)
+
+    else:
+        raise TimeoutError('`x11vnc` never started up?')
 
     # time.sleep(_PROC_SPAWN_WAIT)
     yield proc, port, pw
