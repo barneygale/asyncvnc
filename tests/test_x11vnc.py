@@ -16,7 +16,7 @@ pytest_plugins = ['pytester']
 if platform.system() == 'Windows':
     _KILL_SIGNAL = signal.CTRL_BREAK_EVENT
     _INT_SIGNAL = signal.CTRL_C_EVENT
-    _PROC_SPAWN_WAIT = 2
+    _PROC_SPAWN_WAIT = 3
 else:
     _KILL_SIGNAL = signal.SIGKILL
     _INT_SIGNAL = signal.SIGINT
