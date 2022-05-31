@@ -16,7 +16,7 @@ pytest_plugins = ['pytester']
 if platform.system() == 'Windows':
     _KILL_SIGNAL = signal.CTRL_BREAK_EVENT
     _INT_SIGNAL = signal.CTRL_C_EVENT
-    _PROC_SPAWN_WAIT = 3
+    _PROC_SPAWN_WAIT = 6
 else:
     _KILL_SIGNAL = signal.SIGKILL
     _INT_SIGNAL = signal.SIGINT
@@ -35,7 +35,7 @@ def sig_prog(proc, sig):
         proc.send_signal(_KILL_SIGNAL)
 
     ret = proc.wait()
-    assert ret
+    assert ret in (-9, 0)
 
 
 @pytest.fixture(
@@ -55,16 +55,18 @@ def x11vnc(
     pw = request.param
     cmdargs = [
         'x11vnc',
-        '-display :0',
+        "-display :0",
         '-noipv6',
         '-forever',
         '-noxdamage',
         '-ncache_cr',
         f'-rfbport {port}',
     ]
-
     if pw:
         cmdargs.append(f'-passwd {pw}')
+
+    cli_cmd = ' '.join(cmdargs)
+    print(f'\nspawning x11vnc with: {cli_cmd}\n')
 
     # TODO: x11 doesn't run on windows right so we don't need this?
     # i guess it depends on whether we want a test for an equivalent
@@ -78,10 +80,22 @@ def x11vnc(
         cmdargs,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        shell=True,
         **spkwargs,
     )
+
     assert not proc.returncode
-    time.sleep(_PROC_SPAWN_WAIT)
+    patt = 'The VNC desktop is'
+
+    output = proc.stderr.readline().decode()
+    while patt not in output:
+        output = proc.stderr.readline().decode()
+
+        # XXX: for debugging these tests if necessary
+        # if output:
+        #     print(output)
+
+    # time.sleep(_PROC_SPAWN_WAIT)
     yield proc, port, pw
     sig_prog(proc, _INT_SIGNAL)
 
