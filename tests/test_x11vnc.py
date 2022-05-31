@@ -86,13 +86,8 @@ def x11vnc(
     sig_prog(proc, _INT_SIGNAL)
 
 
-@pytest.mark.parametrize(
-    'force_vid', [None, 'rgba'],
-    ids=lambda fv: f'force_vid={fv}',
-)
 def test_basic_connection_maybe_auth(
     x11vnc,
-    force_vid,
 ):
     proc, port, pw = x11vnc
 
@@ -100,7 +95,6 @@ def test_basic_connection_maybe_auth(
         async with asyncvnc.connect(
             'localhost',
             port=port,
-            force_video_mode=force_vid,
             password=pw,
 
         ) as client:
