@@ -42,4 +42,4 @@ jobs:
         run: pip install -U . -r requirements-test.txt --upgrade-strategy eager
 
       - name: Test suite
-        run: pytest tests -rs
+        run: pytest tests -srvv

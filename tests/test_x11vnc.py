@@ -36,7 +36,7 @@ def sig_prog(proc, sig):
         proc.send_signal(_KILL_SIGNAL)
 
     ret = proc.wait()
-    assert ret in (-9, 0)
+    assert ret in (-9, -2, 0)
 
 
 @pytest.fixture(
@@ -102,13 +102,16 @@ def x11vnc(
             print(f'waiting for vnc server socket to come up: {sockaddr}')
             time.sleep(0.5)
 
+            # XXX: for debugging these tests if necessary
+            line = proc.stderr.readline()
+            while line:
+                print(line)
+                line = proc.stderr.readline()
+            else:
+                break
+
         finally:
             s.close()
-
-        # XXX: for debugging these tests if necessary
-        # output = proc.stderr.readline().decode()
-        # if output:
-        #     print(output)
 
     else:
         raise TimeoutError('`x11vnc` never started up?')
