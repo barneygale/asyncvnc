@@ -87,7 +87,7 @@ def x11vnc(
 
     assert not proc.returncode
 
-    timeout = 3
+    timeout = 10
     start = time.time()
 
     while (
