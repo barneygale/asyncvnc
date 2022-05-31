@@ -56,7 +56,7 @@ def x11vnc(
     pw = request.param
     cmdargs = [
         'x11vnc',
-        # "-display :0",
+        "-display :1",
         '-noipv6',
         '-forever',
         '-noxdamage',

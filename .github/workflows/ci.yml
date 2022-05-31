@@ -17,6 +17,13 @@ jobs:
   testing:
     name: 'install + test-suite'
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: sh
+
+    env:
+      DISPLAY: ':1'
+
     steps:
 
       - name: Checkout
@@ -40,6 +47,12 @@ jobs:
 
       - name: Install dependencies
         run: pip install -U . -r requirements-test.txt --upgrade-strategy eager
+
+      - name: Remove Xorg tmp file(s)
+        run: rm -f /tmp/.X1-lock
+
+      - name: start Xvfb in background
+        run: Xvfb :1 -ac -screen 0 1024x768x16 &
 
       - name: Test suite
         run: pytest tests -srvv
