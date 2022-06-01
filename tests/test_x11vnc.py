@@ -56,7 +56,8 @@ def x11vnc(
     pw = request.param
     cmdargs = [
         'x11vnc',
-        "-display :1",
+        '-display :1',
+        '-noxdamage',
         '-noipv6',
         '-forever',
         '-noxdamage',
@@ -103,12 +104,12 @@ def x11vnc(
             time.sleep(0.5)
 
             # XXX: for debugging these tests if necessary
-            line = proc.stderr.readline()
-            while line:
-                print(line)
-                line = proc.stderr.readline()
-            else:
-                break
+            # line = proc.stderr.readline()
+            # while line:
+            #     print(line)
+            #     line = proc.stderr.readline()
+            # else:
+            #     break
 
         finally:
             s.close()
