@@ -10,6 +10,10 @@ AsyncVNC: Asynchronous VNC for Python
 .. image:: https://img.shields.io/pypi/v/asyncvnc?style=flat-square
     :target: https://pypi.org/project/asyncvnc
 
+.. image:: https://github.com/barneygale/asyncvnc/actions/workflows/ci.yml/badge.svg
+    :target: https://github.com/barneygale/asyncvnc/actions
+
+
 
 AsyncVNC is a Python package which provides an asynchronous client implementation of the VNC (RFB) protocol on top of
 the asyncio framework.
