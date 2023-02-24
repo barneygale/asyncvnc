@@ -470,6 +470,8 @@ class Client:
         writer.write(b'RFB 003.008\n')
 
         auth_types = set(await reader.readexactly(await read_int(reader, 1)))
+        if not auth_types:
+            raise ValueError(await read_text(reader, 'utf-8'))
         for auth_type in (33, 1, 2):
             if auth_type in auth_types:
                 writer.write(auth_type.to_bytes(1, 'big'))
