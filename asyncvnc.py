@@ -360,6 +360,15 @@ class Video:
             self.data[:, :, self.mode.index('b')],
             self.data[:, :, self.mode.index('a')]))
 
+    def is_complete(self):
+        """
+        Returns true if the video buffer is entirely opaque.
+        """
+
+        if self.data is None:
+            return False
+        return self.data[:, :, self.mode.index('a')].all()
+
     def detect_screens(self) -> List[Screen]:
         """
         Detect physical screens by inspecting the alpha channel.
@@ -553,6 +562,19 @@ class Client:
         """
 
         await self.writer.drain()
+
+    async def screenshot(self, x: int = 0, y: int = 0, width: Optional[int] = None, height: Optional[int] = None):
+        """
+        Takes a screenshot and returns a 3D RGBA array.
+        """
+
+        self.video.data = None
+        self.video.refresh(x, y, width, height)
+        while True:
+            update_type = await self.read()
+            if update_type is UpdateType.VIDEO:
+                if self.video.is_complete():
+                    return self.video.as_rgba()
 
 
 @asynccontextmanager

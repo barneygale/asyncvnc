@@ -132,24 +132,10 @@ To retrieve an image from the VNC server and save it as a PNG file::
     import asyncio, asyncvnc
     from PIL import Image
 
-    async def read_updates(client):
-        while True:
-            await client.read()
-
     async def run_client():
         async with asyncvnc.connect('localhost') as client:
-
-            # Request a video update
-            client.video.refresh()
-
-            # Handle packets for a few seconds
-            try:
-                await asyncio.wait_for(read_updates(client), 3.0)
-            except asyncio.TimeoutError:
-                pass
-
             # Retrieve pixels as a 3D numpy array
-            pixels = client.video.as_rgba()
+            pixels = await client.screenshot()
 
             # Save as PNG using PIL/pillow
             image = Image.fromarray(pixels)
