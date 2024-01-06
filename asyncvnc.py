@@ -29,6 +29,7 @@ key_codes['Ctrl'] = key_codes['Control_L']
 key_codes['Super'] = key_codes['Super_L']
 key_codes['Shift'] = key_codes['Shift_L']
 key_codes['Backspace'] = key_codes['BackSpace']
+key_codes['Enter'] = key_codes['KP_Enter']
 
 # Common screen aspect ratios
 screen_ratios: Set[Fraction] = {
