@@ -304,16 +304,38 @@ class Video:
         decompress = decompressobj().decompress
         return cls(reader, writer, decompress, name, width, height, mode)
 
+    def get_rect(self, x: int = 0, y: int = 0, width: Optional[int] = None, height: Optional[int] = None) -> tuple:
+        """
+        Crops the rectangle according to the video buffer.
+        """
+        if x < 0:
+            x = 0
+        elif x > self.width:
+            x = self.width
+        if y < 0:
+            y = 0
+        elif y > self.height:
+            y = self.height
+        if (width is None) or (width + x > self.width):
+            width = self.width - x
+        elif width < 0:
+            width = 0
+        if (height is None)  or (height + y > self.height):
+            height = self.height - y
+        elif height < 0:
+            height = 0
+
+        return (x, y, width, height)
+
     def refresh(self, x: int = 0, y: int = 0, width: Optional[int] = None, height: Optional[int] = None):
         """
         Sends a video buffer update request to the server.
         """
 
         incremental = self.data is not None
-        if width is None:
-            width = self.width
-        if height is None:
-            height = self.height
+
+        (x, y, width, height) = self.get_rect(x, y, width, height)
+
         self.writer.write(
             b'\x03' +
             incremental.to_bytes(1, 'big') +
@@ -343,31 +365,36 @@ class Video:
         self.data[y:y + height, x:x + width] = np.ndarray((height, width, 4), 'B', data)
         self.data[y:y + height, x:x + width, self.mode.index('a')] = 255
 
-    def as_rgba(self) -> np.ndarray:
+    def as_rgba(self, x: int = 0, y: int = 0, width: Optional[int] = None, height: Optional[int] = None) -> np.ndarray:
         """
-        Returns the video buffer as a 3D RGBA array.
+        Returns the video buffer or the selected part of it as a 3D RGBA array.
         """
+
+        (x, y, width, height) = self.get_rect(x, y, width, height)
 
         if self.data is None:
-            return np.zeros((self.height, self.width, 4), 'B')
+            return np.zeros((height, width, 4), 'B')
         if self.mode == 'rgba':
-            return self.data
+            return self.data[y:y + height, x:x + width, :]
         if self.mode == 'abgr':
-            return self.data[:, :, ::-1]
+            return self.data[y:y + height, x:x + width, ::-1]
         return np.dstack((
-            self.data[:, :, self.mode.index('r')],
-            self.data[:, :, self.mode.index('g')],
-            self.data[:, :, self.mode.index('b')],
-            self.data[:, :, self.mode.index('a')]))
+            self.data[y:y + height, x:x + width, self.mode.index('r')],
+            self.data[y:y + height, x:x + width, self.mode.index('g')],
+            self.data[y:y + height, x:x + width, self.mode.index('b')],
+            self.data[y:y + height, x:x + width, self.mode.index('a')]))
 
-    def is_complete(self):
+    def is_complete(self, x: int = 0, y: int = 0, width: Optional[int] = None, height: Optional[int] = None):
         """
-        Returns true if the video buffer is entirely opaque.
+        Returns true if the video buffer or the selected part of it is entirely opaque.
         """
 
         if self.data is None:
             return False
-        return self.data[:, :, self.mode.index('a')].all()
+
+        (x, y, width, height) = self.get_rect(x, y, width, height)
+
+        return self.data[y:y + height, x:x + width, self.mode.index('a')].all()
 
     def detect_screens(self) -> List[Screen]:
         """
@@ -573,8 +600,8 @@ class Client:
         while True:
             update_type = await self.read()
             if update_type is UpdateType.VIDEO:
-                if self.video.is_complete():
-                    return self.video.as_rgba()
+                if self.video.is_complete(x, y, width, height):
+                    return self.video.as_rgba(x, y, width, height)
 
 
 @asynccontextmanager
